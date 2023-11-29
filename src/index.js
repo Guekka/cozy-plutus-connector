@@ -1,5 +1,5 @@
 const { log, cozyClient, BaseKonnector, categorize } = require('cozy-konnector-libs')
-const { getPlutusData, isCredit } = require('./plutus')
+const { getPlutusData, isCredit } = require('./swile')
 const { getToken } = require('./auth')
 const doctypes = require('cozy-doctypes')
 const {
@@ -13,12 +13,12 @@ Document.registerClient(cozyClient)
 
 const reconciliator = new BankingReconciliator({ BankAccount, BankTransaction })
 
-const VENDOR = 'Plutus'
+const VENDOR = 'Swile'
 
 class PlutusConnector extends BaseKonnector {
     async fetch(fields) {
         log('info', 'Authenticating ...')
-        this.jwt = await getToken(this, fields.login, fields.password, fields.totp)
+        this.jwt = `eyJraWQiOiI1MzNiZjVjOGRiZDA1ZWYxOGZkMDFlMmJiYmFiM2Q3ZjY5ZTM1MTFkZDA4NDAyODYyYjVkZTYzYjlhMjM4OTIzIiwiYWxnIjoiSFM1MTIifQ.eyJpYXQiOjE3MDEyNDU2NzUsImV4cCI6MTcwMTI0NzQ3NSwianRpIjoiNzAzNTk5NGMtZjE1Yi00OGU1LTgzNDEtZTI1YmQ5ZDg4MWVhIiwiaXNzIjoiYXBpLnN3aWxlLmNvIiwic3ViIjoiYjllNDUxOTktZGEwZS00MTEyLThmYzctZGE5NjcxMDI3Y2MyIiwiYmFua2luZ19hY2NvdW50X3V1aWQiOiI3ZDczMjlhYi04NDliLTRlNjEtYTk3ZS03M2MxMjNkY2Y0ZGYiLCJlbWFpbCI6Im1lbG9kaWUubWFyY2gwNkBnbWFpbC5jb20iLCJzY29wZSI6InB1YmxpYyJ9.JjUyZnc4FxtUPk_FlLmig6S0sZfTYEoJoj5faLd931FO_rtZ2x97EY476IzFqf80MgziUmv8rQCQ87tHSiv5cg`; // await getToken(this, fields.login, fields.password, fields.totp)
         log('info', 'Successfully logged in')
 
         if (this.browser) {

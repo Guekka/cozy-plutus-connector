@@ -1,48 +1,35 @@
 const puppeteer = require('puppeteer')
-const totp = require("totp-generator");
 
-const baseUrl = 'https://dex.plutus.it'
-const loginUrl = `${baseUrl}/auth/login`
+const baseUrl = 'https://team.swile.co'
+const walletUrl = `${baseUrl}/wallets`
 
 module.exports = {
-    getToken: async function (connector, username, password, maybe_totp) {
-        let browser = await puppeteer.launch({ headless: true });
+    getToken: async function (connector, username, password) {
+        let browser = await puppeteer.launch({ headless: false });
         let page = await browser.newPage();
-        await page.goto(loginUrl);
-        await page.waitForSelector('form')
+        await page.goto(walletUrl);
+        await page.waitForSelector('form');
 
-        const form = await page.$('form')
+        const form = await page.$('form');
 
-        await form.$('input[name="email"]').then(el => el.type(username))
-        await form.$('input[name="password"]').then(el => el.type(password))
+        // reject cookies
+        await page.waitForSelector('#onetrust-reject-all-handler', { timeout: 20000 }).then(el => el.click());
 
-        await page.waitForTimeout(1000) // wait for the form to be filled
+        await form.$('input[name="username"]').then(el => el.type(username));
+        await form.$('input[name="password"]').then(el => el.type(password));
 
-        await form.waitForSelector('button[type="submit"]', { timeout: 20000 }).then(el => el.click())
+        await page.waitForTimeout(1000);
 
-        await page.waitForSelector('input[name="code"]', { timeout: 20000 })
+        await form.waitForSelector('button[type="submit"]', { timeout: 20000 }).then(el => el.click());
+        await page.waitForFunction(`window.location.href === "${walletUrl}"`, { timeout: 20000 });
 
-        const two_fa_form = await page.$('form')
-        if (two_fa_form) {
-            await connector.deactivateAutoSuccessfulLogin()
+        const jwt = await page.cookies().then(cookies => {
+            return cookies.find(c => c.name === 'lunchr:jwt').value;
+        });
 
-            let code
-            if (maybe_totp) {
-                code = totp(maybe_totp)
-            } else {
-                code = await connector.waitForTwoFaCode()
-            }
-            await two_fa_form.$('input[name="code"]').then(el => el.type(code))
-            await two_fa_form.$('button[type="submit"]').then(el => el.click())
+        await connector.notifySuccessfulLogin();
 
-            await page.waitForSelector('a[href="/dashboard"]', { timeout: 20000 })
-        }
-
-        const jwt = await page.evaluate(() => localStorage.getItem("id_token"));
-
-        await connector.notifySuccessfulLogin()
-
-        await browser.close()
-        return jwt
+        // await browser.close();
+        return jwt;
     }
 }
